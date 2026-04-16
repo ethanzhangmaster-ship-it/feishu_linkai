@@ -1,0 +1,5 @@
+{
+  "name": "Adjust Data Dashboard",
+  "description": "A visual dashboard to manage Adjust data extraction, KPI calculation, and generate local HTML reports.",
+  "requestFramePermissions": []
+}

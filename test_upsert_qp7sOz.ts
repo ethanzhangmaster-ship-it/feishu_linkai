@@ -1,0 +1,24 @@
+import fs from 'fs';
+import { upsertToFeishuSheet } from './services/feishuUpsert.js';
+import { fetchAndProcessData } from './services/adjustService.js';
+import { syncToFeishu } from './services/feishuService.js';
+
+const config = JSON.parse(fs.readFileSync('./app-config.json', 'utf8'));
+
+async function run() {
+  try {
+    const block = config.data_blocks.find((b: any) => b.id === 'block_ios_fb_basic');
+    if (!block) throw new Error("Block not found");
+    
+    console.log("Fetching block:", block.name);
+    const data = await fetchAndProcessData(config, block, '2026-04-01', '2026-04-02', [], undefined, true);
+    console.log("Data length:", data.length);
+    
+    if (data.length > 0) {
+      console.log("Sample data:", data.find(d => d.appName === 'P02 Mermaid' && d.dateStr.includes('2026-04-01')));
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+run();

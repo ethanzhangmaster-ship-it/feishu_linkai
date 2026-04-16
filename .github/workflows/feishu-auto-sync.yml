@@ -1,0 +1,56 @@
+name: Feishu Auto Sync
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: feishu-auto-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      TZ: Asia/Shanghai
+      ADJUST_TOKEN: ${{ secrets.ADJUST_TOKEN }}
+      FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
+      FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
+      P04_SPREADSHEET_TOKEN: ${{ vars.P04_SPREADSHEET_TOKEN }}
+      P02_SPREADSHEET_TOKEN: ${{ vars.P02_SPREADSHEET_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate workflow configuration
+        run: |
+          test -n "$ADJUST_TOKEN" || { echo "Missing secret: ADJUST_TOKEN"; exit 1; }
+          test -n "$FEISHU_APP_ID" || { echo "Missing secret: FEISHU_APP_ID"; exit 1; }
+          test -n "$FEISHU_APP_SECRET" || { echo "Missing secret: FEISHU_APP_SECRET"; exit 1; }
+          test -n "$P04_SPREADSHEET_TOKEN" || { echo "Missing repo variable: P04_SPREADSHEET_TOKEN"; exit 1; }
+          test -n "$P02_SPREADSHEET_TOKEN" || { echo "Missing repo variable: P02_SPREADSHEET_TOKEN"; exit 1; }
+
+      - name: Sync P04 Witch
+        run: |
+          python3 -u manual_feishu_sync.py \
+            --spreadsheet "$P04_SPREADSHEET_TOKEN" \
+            --app-token "f1s2nylfod1c" \
+            --app-name "P04 Witch" \
+            --start-date "2025-12-01"
+
+      - name: Sync P02 Mermaid
+        run: |
+          python3 -u manual_feishu_sync.py \
+            --spreadsheet "$P02_SPREADSHEET_TOKEN" \
+            --app-token "24xyuoynpe74" \
+            --app-name "P02 Mermaid" \
+            --start-date "2025-12-01"
