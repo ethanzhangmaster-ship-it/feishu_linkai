@@ -6,7 +6,7 @@ const config = JSON.parse(fs.readFileSync('./app-config.json', 'utf8'));
 async function run() {
   try {
     const token = await getTenantAccessToken(config);
-    const spreadsheetToken = 'LkWhsJT7Thq2p8t8VXOcK1bynHc';
+    const spreadsheetToken = process.env.TEST_SPREADSHEET_TOKEN || config?.feishu_config?.spreadsheet_token;
     
     const sheetsRes = await fetch(`https://open.feishu.cn/open-apis/sheets/v3/spreadsheets/${spreadsheetToken}/sheets/query`, {
       headers: { 'Authorization': `Bearer ${token}` }

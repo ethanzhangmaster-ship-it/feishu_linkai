@@ -1,0 +1,86 @@
+{
+  "adjust_api": {
+    "user_token": "YOUR_ADJUST_TOKEN",
+    "use_proxy": true
+  },
+  "feishu_config": {
+    "app_id": "YOUR_FEISHU_APP_ID",
+    "app_secret": "YOUR_FEISHU_APP_SECRET",
+    "spreadsheet_token": "YOUR_DEFAULT_SPREADSHEET_TOKEN",
+    "sheet_id": "YOUR_DEFAULT_SHEET_ID",
+    "enabled": true,
+    "auto_sync_enabled": true,
+    "selected_apps": [],
+    "app_mappings": [],
+    "auto_sync_start_date": "2025-12-01",
+    "selected_blocks": [
+      "block_roi_all_80",
+      "block_roi_ios_fb_80",
+      "block_roi_gp_fb_80",
+      "block_basic_all_80",
+      "block_basic_gp_fb_80",
+      "block_basic_ios_fb_80"
+    ]
+  },
+  "ai_config": {
+    "api_key": "",
+    "model": "gemini-3.1-pro-preview"
+  },
+  "data_blocks": [
+    {
+      "id": "block_roi_all_80",
+      "name": "ROI-发行-市场部门 (80% Gross)",
+      "grouping": ["date"],
+      "filter": "",
+      "label_column": "说明",
+      "label_value_fixed": "ROI All 80%",
+      "revenue_mode": "80_gross"
+    },
+    {
+      "id": "block_roi_ios_fb_80",
+      "name": "ROI-IOS-FB (80% Gross)",
+      "grouping": ["date"],
+      "filter": "store_type=ios&network=Facebook",
+      "label_column": "说明",
+      "label_value_fixed": "ROI IOS FB 80%",
+      "revenue_mode": "80_gross"
+    },
+    {
+      "id": "block_roi_gp_fb_80",
+      "name": "ROI-GP-FB (80% Gross)",
+      "grouping": ["date"],
+      "filter": "store_type=android&network=Facebook",
+      "label_column": "说明",
+      "label_value_fixed": "ROI GP FB 80%",
+      "revenue_mode": "80_gross"
+    },
+    {
+      "id": "block_basic_all_80",
+      "name": "基础数据-发行-市场部门 (80% Gross)",
+      "grouping": ["date"],
+      "filter": "",
+      "label_column": "说明",
+      "label_value_fixed": "Basic All 80%",
+      "revenue_mode": "80_gross"
+    },
+    {
+      "id": "block_basic_gp_fb_80",
+      "name": "基础数据-GP-FB (80% Gross)",
+      "grouping": ["date"],
+      "filter": "store_type=android&network=Facebook",
+      "label_column": "说明",
+      "label_value_fixed": "Basic GP FB 80%",
+      "revenue_mode": "80_gross"
+    },
+    {
+      "id": "block_basic_ios_fb_80",
+      "name": "基础数据-IOS-FB (80% Gross)",
+      "grouping": ["date"],
+      "filter": "store_type=ios&network=Facebook",
+      "label_column": "说明",
+      "label_value_fixed": "Basic IOS FB 80%",
+      "revenue_mode": "80_gross"
+    }
+  ],
+  "kpis": []
+}

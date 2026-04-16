@@ -16,7 +16,7 @@ async function run() {
     
     if (data.length > 0) {
       console.log("Sample data:", data[0]);
-      const spreadsheetToken = 'LkWhsJT7Thq2p8t8VXOcK1bynHc';
+      const spreadsheetToken = process.env.TEST_SPREADSHEET_TOKEN || config?.feishu_config?.spreadsheet_token;
       const sheetId = '5PnClN';
       
       console.log("Syncing to Feishu...");

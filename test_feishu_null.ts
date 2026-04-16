@@ -6,7 +6,7 @@ const config = JSON.parse(fs.readFileSync('./app-config.json', 'utf8'));
 async function run() {
   try {
     const token = await getTenantAccessToken(config);
-    const spreadsheetToken = 'LkWhsJT7Thq2p8t8VXOcK1bynHc';
+    const spreadsheetToken = process.env.TEST_SPREADSHEET_TOKEN || config?.feishu_config?.spreadsheet_token;
     const sheetId = 'KrjaRy'; // We will just read for now
     
     // Let's create a test sheet to test updating with nulls

@@ -6,7 +6,7 @@ const config = JSON.parse(fs.readFileSync('./app-config.json', 'utf8'));
 async function run() {
   try {
     const token = await getTenantAccessToken(config);
-    const spreadsheetToken = 'LkWhsJT7Thq2p8t8VXOcK1bynHc';
+    const spreadsheetToken = process.env.TEST_SPREADSHEET_TOKEN || config?.feishu_config?.spreadsheet_token;
     
     const addSheetRes = await fetch(`https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/${spreadsheetToken}/sheets_batch_update`, {
       method: 'POST',

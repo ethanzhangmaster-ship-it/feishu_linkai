@@ -44,18 +44,11 @@ import {
 } from 'lucide-react';
 
 const STORAGE_KEY = 'adjust_dashboard_v5_core';
-const DEFAULT_AUTO_SYNC_APP_MAPPINGS = [
-  {
-    appName: 'f1s2nylfod1c',
-    spreadsheet_token: 'LkWhsJT7Thq2p8t8VXOcK1bynHc',
-    sheet_mappings: []
-  },
-  {
-    appName: '24xyuoynpe74',
-    spreadsheet_token: 'IR76suH4HhuxkstOBbhcwR7pn3e',
-    sheet_mappings: []
-  }
-];
+const DEFAULT_AUTO_SYNC_APP_MAPPINGS: Array<{
+  appName: string;
+  spreadsheet_token: string;
+  sheet_mappings?: { blockId: string; sheetId: string }[];
+}> = [];
 
 const mergeFeishuAppMappings = (
   savedMappings: Array<{ appName: string; spreadsheet_token: string; sheet_mappings?: { blockId: string; sheetId: string }[] }> = []
@@ -90,17 +83,17 @@ interface PersistedState {
 
 const INITIAL_CONFIG: AppConfig = {
   adjust_api: { 
-    user_token: 'jzss-pBPTCF9fPcvYrbqNVsa2aay4aSsVK7KuAxpKPayWFecYg', 
+    user_token: '', 
     use_proxy: true 
   },
   feishu_config: { 
-    app_id: 'cli_a9c0c40f09781cbb', 
-    app_secret: 'emQCuMxSJ29NpYKPq8CBpfpqANfLcVEc', 
-    spreadsheet_token: 'LkWhsJT7Thq2p8t8VXOcK1bynHc', 
-    sheet_id: '4shxvY', 
+    app_id: '', 
+    app_secret: '', 
+    spreadsheet_token: '', 
+    sheet_id: '', 
     enabled: true,
     auto_sync_start_date: '2025-12-01',
-    selected_apps: ['f1s2nylfod1c', '24xyuoynpe74'],
+    selected_apps: [],
     app_mappings: DEFAULT_AUTO_SYNC_APP_MAPPINGS,
     selected_blocks: [
       "block_roi_all_80",
