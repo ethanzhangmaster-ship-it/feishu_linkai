@@ -238,62 +238,91 @@ class ManualFeishuSync:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.load(response)
 
-    def adjust_request(self, url):
-        request = urllib.request.Request(
-            url,
-            headers={"Authorization": f"Bearer {self.adjust_token}", "Accept": "application/json"},
-        )
-        for attempt in range(3):
+    def adjust_request(self, url, max_attempts=5):
+        retry_waits = [5, 15, 30, 60]
+        retryable_http_codes = {429, 500, 502, 503, 504}
+        last_error = None
+        for attempt in range(max_attempts):
+            request = urllib.request.Request(
+                url,
+                headers={"Authorization": f"Bearer {self.adjust_token}", "Accept": "application/json"},
+            )
             try:
                 return self.open_json(request)
             except HTTPError as error:
                 body = error.read().decode("utf-8", "ignore")
-                if error.code == 429 and attempt < 2:
-                    wait_seconds = attempt + 1
-                    print(f"Adjust rate limited, retrying in {wait_seconds}s", flush=True)
+                if error.code in retryable_http_codes and attempt < max_attempts - 1:
+                    wait_seconds = retry_waits[min(attempt, len(retry_waits) - 1)]
+                    print(f"Adjust HTTP {error.code} (transient), retrying in {wait_seconds}s (attempt {attempt + 1}/{max_attempts})", flush=True)
                     time.sleep(wait_seconds)
+                    last_error = RuntimeError(f"Adjust API failed: {error.code} {body[:200]}")
                     continue
-                raise RuntimeError(f"Adjust API failed: {error.code} {body}") from error
+                raise RuntimeError(f"Adjust API failed: {error.code} {body[:200]}") from error
             except URLError as error:
-                if attempt < 2:
-                    wait_seconds = attempt + 1
-                    print(f"Adjust network error {error}, retrying in {wait_seconds}s", flush=True)
+                if attempt < max_attempts - 1:
+                    wait_seconds = retry_waits[min(attempt, len(retry_waits) - 1)]
+                    print(f"Adjust network error {error}, retrying in {wait_seconds}s (attempt {attempt + 1}/{max_attempts})", flush=True)
                     time.sleep(wait_seconds)
+                    last_error = RuntimeError(f"Adjust network error: {error}")
                     continue
-                raise
+                raise RuntimeError(f"Adjust network error: {error}") from error
+        raise last_error or RuntimeError("Adjust request failed after all retries")
 
-    def feishu_request(self, method, path, data=None):
+    def feishu_request(self, method, path, data=None, max_attempts=5):
         headers = {"Authorization": f"Bearer {self.tenant_token}"}
         payload = None
         if data is not None:
             payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
             headers["Content-Type"] = "application/json"
-        request = urllib.request.Request(
-            "https://open.feishu.cn" + path,
-            data=payload,
-            headers=headers,
-            method=method,
-        )
-        for attempt in range(3):
+
+        # Exponential backoff: 5s, 15s, 30s, 60s
+        retry_waits = [5, 15, 30, 60]
+        # Retryable HTTP status codes (server-side transient errors)
+        retryable_http_codes = {429, 500, 502, 503, 504}
+
+        last_error = None
+        for attempt in range(max_attempts):
+            # Rebuild request each attempt (urllib Request is single-use after read)
+            req = urllib.request.Request(
+                "https://open.feishu.cn" + path,
+                data=payload,
+                headers=headers,
+                method=method,
+            )
             try:
-                response = self.open_json(request)
+                response = self.open_json(req)
                 if response.get("code") == 0:
                     return response
                 message = response.get("msg", "unknown error")
-                if "too many request" in message.lower() and attempt < 2:
-                    wait_seconds = attempt + 1
-                    print(f"Feishu rate limited, retrying in {wait_seconds}s", flush=True)
+                if "too many request" in message.lower() and attempt < max_attempts - 1:
+                    wait_seconds = retry_waits[min(attempt, len(retry_waits) - 1)]
+                    print(f"Feishu rate limited (app-level), retrying in {wait_seconds}s (attempt {attempt + 1}/{max_attempts})", flush=True)
                     time.sleep(wait_seconds)
                     continue
                 raise RuntimeError(f"Feishu API failed: {response}")
             except HTTPError as error:
                 body = error.read().decode("utf-8", "ignore")
-                if error.code == 429 and attempt < 2:
-                    wait_seconds = attempt + 1
-                    print(f"Feishu HTTP 429, retrying in {wait_seconds}s", flush=True)
+                if error.code in retryable_http_codes and attempt < max_attempts - 1:
+                    wait_seconds = retry_waits[min(attempt, len(retry_waits) - 1)]
+                    print(
+                        f"Feishu HTTP {error.code} (transient), retrying in {wait_seconds}s "
+                        f"(attempt {attempt + 1}/{max_attempts})",
+                        flush=True,
+                    )
                     time.sleep(wait_seconds)
+                    last_error = RuntimeError(f"Feishu HTTP failed: {error.code} {body[:200]}")
                     continue
-                raise RuntimeError(f"Feishu HTTP failed: {error.code} {body}") from error
+                raise RuntimeError(f"Feishu HTTP failed: {error.code} {body[:200]}") from error
+            except URLError as error:
+                if attempt < max_attempts - 1:
+                    wait_seconds = retry_waits[min(attempt, len(retry_waits) - 1)]
+                    print(f"Feishu network error {error}, retrying in {wait_seconds}s (attempt {attempt + 1}/{max_attempts})", flush=True)
+                    time.sleep(wait_seconds)
+                    last_error = RuntimeError(f"Feishu network error: {error}")
+                    continue
+                raise RuntimeError(f"Feishu network error: {error}") from error
+
+        raise last_error or RuntimeError("Feishu request failed after all retries")
 
     def get_tenant_token(self):
         request = urllib.request.Request(
