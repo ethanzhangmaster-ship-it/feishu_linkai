@@ -209,8 +209,18 @@ def daterange_chunks(start_date_str, end_date_str, chunk_days=5):
         current = current_end + timedelta(days=1)
 
 
+def resolve_sync_window(start_date_str, end_date_str, rolling_days=None):
+    effective_end = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+    effective_start = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+    if rolling_days and rolling_days > 0:
+        rolling_start = effective_end - timedelta(days=rolling_days - 1)
+        if rolling_start > effective_start:
+            effective_start = rolling_start
+    return effective_start.isoformat(), effective_end.isoformat()
+
+
 class ManualFeishuSync:
-    def __init__(self, spreadsheet_token, app_token, app_name=None, start_date="2025-12-01", end_date=None):
+    def __init__(self, spreadsheet_token, app_token, app_name=None, start_date="2025-12-01", end_date=None, rolling_days=None):
         config = {}
         if CONFIG_PATH.exists():
             config = json.loads(CONFIG_PATH.read_text())
@@ -230,8 +240,14 @@ class ManualFeishuSync:
         self.spreadsheet_token = spreadsheet_token
         self.target_app_token = app_token
         self.target_app_name = app_name
-        self.start_date = start_date
+        self.requested_start_date = start_date
         self.end_date = end_date or (datetime.now(ZoneInfo("Asia/Shanghai")).date() - timedelta(days=1)).isoformat()
+        self.rolling_days = rolling_days
+        self.start_date, self.end_date = resolve_sync_window(
+            start_date,
+            self.end_date,
+            rolling_days=rolling_days,
+        )
         self.tenant_token = None
 
     def open_json(self, request, timeout=180):
@@ -874,7 +890,8 @@ class ManualFeishuSync:
     def run(self):
         print(
             f"Manual sync start: spreadsheet={self.spreadsheet_token} app={self.target_app_token} "
-            f"range={self.start_date}..{self.end_date}",
+            f"range={self.start_date}..{self.end_date}"
+            + (f" rolling_days={self.rolling_days}" if self.rolling_days else ""),
             flush=True,
         )
         self.get_tenant_token()
@@ -918,7 +935,11 @@ def main():
     parser.add_argument("--app-name", help="Adjust app name")
     parser.add_argument("--start-date", default="2025-12-01")
     parser.add_argument("--end-date")
+    parser.add_argument("--rolling-days", type=int, help="Only sync the most recent N days up to end-date/yesterday")
     args = parser.parse_args()
+
+    if args.rolling_days is not None and args.rolling_days <= 0:
+        raise ValueError("--rolling-days must be a positive integer")
 
     syncer = ManualFeishuSync(
         spreadsheet_token=args.spreadsheet,
@@ -926,6 +947,7 @@ def main():
         app_name=args.app_name,
         start_date=args.start_date,
         end_date=args.end_date,
+        rolling_days=args.rolling_days,
     )
     syncer.run()
 

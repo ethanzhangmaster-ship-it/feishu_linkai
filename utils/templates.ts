@@ -133,6 +133,7 @@ jobs:
       FEISHU_APP_SECRET: \${{ secrets.FEISHU_APP_SECRET }}
       P04_SPREADSHEET_TOKEN: \${{ vars.P04_SPREADSHEET_TOKEN }}
       P02_SPREADSHEET_TOKEN: \${{ vars.P02_SPREADSHEET_TOKEN }}
+      P04_ROLLING_DAYS: \${{ vars.P04_ROLLING_DAYS }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -147,16 +148,18 @@ jobs:
           test -n "$ADJUST_TOKEN" || { echo "Missing secret: ADJUST_TOKEN"; exit 1; }
           test -n "$FEISHU_APP_ID" || { echo "Missing secret: FEISHU_APP_ID"; exit 1; }
           test -n "$FEISHU_APP_SECRET" || { echo "Missing secret: FEISHU_APP_SECRET"; exit 1; }
-          test -n "$P04_SPREADSHEET_TOKEN" || { echo "Missing repo variable: P04_SPREADSHEET_TOKEN"; exit 1; }
           test -n "$P02_SPREADSHEET_TOKEN" || { echo "Missing repo variable: P02_SPREADSHEET_TOKEN"; exit 1; }
 
       - name: Sync P04 Witch
         run: |
+          TARGET_SPREADSHEET="\${P04_SPREADSHEET_TOKEN:-OYmZsOYeGhIKM9tphBWcNca2nwb}"
+          EFFECTIVE_ROLLING_DAYS="\${P04_ROLLING_DAYS:-45}"
           python3 -u manual_feishu_sync.py \\
-            --spreadsheet "$P04_SPREADSHEET_TOKEN" \\
+            --spreadsheet "$TARGET_SPREADSHEET" \\
             --app-token "f1s2nylfod1c" \\
             --app-name "P04 Witch" \\
-            --start-date "2025-12-01"
+            --start-date "2025-12-01" \\
+            --rolling-days "$EFFECTIVE_ROLLING_DAYS"
 
       - name: Sync P02 Mermaid
         run: |
