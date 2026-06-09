@@ -23,6 +23,7 @@ jobs:
       P04_SPREADSHEET_TOKEN: ${{ vars.P04_SPREADSHEET_TOKEN }}
       P02_SPREADSHEET_TOKEN: ${{ vars.P02_SPREADSHEET_TOKEN }}
       P04_ROLLING_DAYS: ${{ vars.P04_ROLLING_DAYS }}
+      P02_ROLLING_DAYS: ${{ vars.P02_ROLLING_DAYS }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,8 +53,10 @@ jobs:
 
       - name: Sync P02 Mermaid
         run: |
+          EFFECTIVE_ROLLING_DAYS="${P02_ROLLING_DAYS:-45}"
           python3 -u manual_feishu_sync.py \
             --spreadsheet "$P02_SPREADSHEET_TOKEN" \
             --app-token "24xyuoynpe74" \
             --app-name "P02 Mermaid" \
-            --start-date "2025-12-01"
+            --start-date "2025-12-01" \
+            --rolling-days "$EFFECTIVE_ROLLING_DAYS"
