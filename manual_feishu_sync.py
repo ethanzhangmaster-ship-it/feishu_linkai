@@ -219,6 +219,11 @@ def resolve_sync_window(start_date_str, end_date_str, rolling_days=None):
     return effective_start.isoformat(), effective_end.isoformat()
 
 
+def month_start(date_str):
+    parsed = datetime.strptime(date_str, "%Y-%m-%d").date()
+    return parsed.replace(day=1).isoformat()
+
+
 class ManualFeishuSync:
     def __init__(self, spreadsheet_token, app_token, app_name=None, start_date="2025-12-01", end_date=None, rolling_days=None):
         config = {}
@@ -243,11 +248,13 @@ class ManualFeishuSync:
         self.requested_start_date = start_date
         self.end_date = end_date or (datetime.now(ZoneInfo("Asia/Shanghai")).date() - timedelta(days=1)).isoformat()
         self.rolling_days = rolling_days
-        self.start_date, self.end_date = resolve_sync_window(
+        self.window_start_date, self.end_date = resolve_sync_window(
             start_date,
             self.end_date,
             rolling_days=rolling_days,
         )
+        self.start_date = month_start(self.window_start_date) if rolling_days else self.window_start_date
+        self.preserve_before_month = extract_month_key(self.start_date) if rolling_days else ""
         self.tenant_token = None
 
     def open_json(self, request, timeout=180):
@@ -849,6 +856,35 @@ class ManualFeishuSync:
                 continue
             self.set_row_visibility(sheet_id, section["dailyStart"], section["dailyEnd"], False)
 
+    def merge_values_by_month(self, existing_values, header, rows):
+        new_values = [header] + rows
+        if not existing_values:
+            return new_values
+        if not self.preserve_before_month:
+            return new_values
+
+        preserved_rows = []
+        current_month = ""
+        for row in existing_values[1:]:
+            if not row:
+                continue
+            cell = row[0].strip() if row and isinstance(row[0], str) else ""
+            summary_month = parse_summary_month_key(cell)
+            if summary_month:
+                current_month = summary_month
+                if summary_month >= self.preserve_before_month:
+                    break
+                preserved_rows.append(list(row[:len(header)]))
+                continue
+
+            if current_month and current_month < self.preserve_before_month:
+                normalized = list(row[:len(header)])
+                if len(normalized) < len(header):
+                    normalized.extend([""] * (len(header) - len(normalized)))
+                preserved_rows.append(normalized)
+
+        return [header] + preserved_rows + rows
+
     def ensure_sheet(self, title, sheets):
         sheet_id = sheets.get(title)
         if sheet_id:
@@ -859,8 +895,8 @@ class ManualFeishuSync:
         return sheet_id
 
     def sync_sheet(self, title, sheet_id, header, rows):
-        values = [header] + rows
         existing_values = self.read_sheet_values(sheet_id)
+        values = self.merge_values_by_month(existing_values, header, rows)
         max_rows = max(len(existing_values), len(values))
         padded = []
         for index in range(max_rows):
@@ -891,7 +927,12 @@ class ManualFeishuSync:
         print(
             f"Manual sync start: spreadsheet={self.spreadsheet_token} app={self.target_app_token} "
             f"range={self.start_date}..{self.end_date}"
-            + (f" rolling_days={self.rolling_days}" if self.rolling_days else ""),
+            + (
+                f" rolling_days={self.rolling_days}"
+                f" preserve_before_month={self.preserve_before_month}"
+                if self.rolling_days
+                else ""
+            ),
             flush=True,
         )
         self.get_tenant_token()
